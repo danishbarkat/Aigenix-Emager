@@ -9,11 +9,12 @@ const MIN_VEL       = 0.003
 
 interface Props {
   frames: CapturedFrame[]
+  sessionId?: string
   onBack: () => void
   onRecapture: () => void
 }
 
-export default function Viewer360({ frames, onBack, onRecapture }: Props) {
+export default function Viewer360({ frames, sessionId, onBack, onRecapture }: Props) {
   const wrapRef   = useRef<HTMLDivElement>(null)
   const imgRef    = useRef<HTMLImageElement>(null)
   const imgsRef   = useRef<HTMLImageElement[]>([])
@@ -169,8 +170,8 @@ export default function Viewer360({ frames, onBack, onRecapture }: Props) {
           draggable={false}
           className="pointer-events-none"
           style={{
-            maxWidth: '100%',
-            maxHeight: '100%',
+            maxWidth: '70%',
+            maxHeight: '70%',
             objectFit: 'contain',
             display: loaded ? 'block' : 'none',
             willChange: 'contents',
@@ -182,8 +183,14 @@ export default function Viewer360({ frames, onBack, onRecapture }: Props) {
         )}
 
         {/* Top bar */}
-        <div className="absolute top-0 inset-x-0 h-16 bg-gradient-to-b from-black/65 to-transparent pointer-events-none flex justify-center pt-4">
+        <div className="absolute top-0 inset-x-0 h-16 bg-gradient-to-b from-black/65 to-transparent pointer-events-none flex items-start justify-between px-4 pt-4">
           <span className="text-white font-bold tracking-widest text-sm">aigenix eMager</span>
+          {sessionId && (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+              style={{ background: 'rgba(91,63,232,0.8)', color: '#EDE9FE' }}>
+              {sessionId}
+            </span>
+          )}
         </div>
 
         {/* Position badge */}

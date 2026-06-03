@@ -3,12 +3,13 @@ import type { CapturedFrame } from '../types'
 import { TOTAL_FRAMES } from '../types'
 
 interface Props {
-  onStart: () => void
-  onView:  () => void
-  frames:  CapturedFrame[]
+  onStart:    () => void
+  onView:     () => void
+  onSessions: () => void
+  frames:     CapturedFrame[]
 }
 
-export default function HomePage({ onStart, onView, frames }: Props) {
+export default function HomePage({ onStart, onView, onSessions, frames }: Props) {
   const hasFrames = frames.length > 0
   const [spinIdx, setSpinIdx] = useState(0)
   const spinRef = useRef<number | null>(null)
@@ -36,10 +37,11 @@ export default function HomePage({ onStart, onView, frames }: Props) {
             <span className="font-semibold text-sm" style={{ color: '#1E1B4B' }}> eMager</span>
           </div>
         </div>
-        <span className="text-xs px-2 py-1 rounded-full font-medium"
-          style={{ background: '#EDE9FE', color: '#5B3FE8' }}>
-          360° AI
-        </span>
+        <button onClick={onSessions}
+          className="text-xs px-3 py-1 rounded-full font-medium border active:opacity-70"
+          style={{ background: '#F5F3FF', color: '#5B3FE8', borderColor: '#DDD6FE' }}>
+          🗂 Sessions
+        </button>
       </nav>
 
       <div className="relative z-10 flex flex-col flex-1 px-6 pb-10">
