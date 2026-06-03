@@ -81,15 +81,72 @@ export default function AngleGuide({ currentIndex, capturedIndices }: Props) {
         <line x1={px} y1={py} x2={lx} y2={ly} stroke="#7C5CF6" strokeWidth="0.8" opacity="0.5" />
         <line x1={px} y1={py} x2={rx} y2={ry} stroke="#7C5CF6" strokeWidth="0.8" opacity="0.5" />
 
-        {/* Car body (top-down) */}
+        {/* Car top-down — detailed */}
         <g transform={`translate(${cx},${cy})`}>
-          <rect x="-11" y="-20" width="22" height="40" rx="6" fill="#334155" />
-          <rect x="-8"  y="-10" width="16" height="18" rx="3" fill="#1e293b" />
-          <rect x="-15" y="-16" width="5" height="8"  rx="2" fill="#475569" />
-          <rect x="10"  y="-16" width="5" height="8"  rx="2" fill="#475569" />
-          <rect x="-15" y="8"   width="5" height="8"  rx="2" fill="#475569" />
-          <rect x="10"  y="8"   width="5" height="8"  rx="2" fill="#475569" />
-          <circle cy="-22" cx="0" r="2" fill="#7C5CF6" />
+          <defs>
+            <linearGradient id="carBodyG" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%"   stopColor="#3730a3"/>
+              <stop offset="50%"  stopColor="#4338ca"/>
+              <stop offset="100%" stopColor="#3730a3"/>
+            </linearGradient>
+            <linearGradient id="carRoofG" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%"   stopColor="#1e1b4b"/>
+              <stop offset="50%"  stopColor="#312e81"/>
+              <stop offset="100%" stopColor="#1e1b4b"/>
+            </linearGradient>
+          </defs>
+
+          {/* Body shadow */}
+          <ellipse cx="1" cy="1" rx="13" ry="23" fill="#0f0d2a" opacity="0.4"/>
+
+          {/* Main body */}
+          <path d="M-10,-22 Q-12,-22 -12,-18 L-12,18 Q-12,22 -10,22 L10,22 Q12,22 12,18 L12,-18 Q12,-22 10,-22 Z"
+            fill="url(#carBodyG)"/>
+
+          {/* Body highlight */}
+          <path d="M-4,-22 Q0,-23 4,-22 L4,22 Q0,23 -4,22 Z" fill="white" opacity="0.06"/>
+
+          {/* Windshield (front) */}
+          <path d="M-7,-10 Q-6,-18 0,-19 Q6,-18 7,-10 Z" fill="#6366f1" opacity="0.6"/>
+          <path d="M-4,-10 Q-3,-17 0,-18 Q3,-17 4,-10 Z" fill="#a5b4fc" opacity="0.3"/>
+
+          {/* Rear window */}
+          <path d="M-7,10 Q-6,18 0,19 Q6,18 7,10 Z" fill="#4338ca" opacity="0.5"/>
+
+          {/* Cabin roof */}
+          <rect x="-7" y="-10" width="14" height="20" rx="2" fill="url(#carRoofG)"/>
+
+          {/* Door line */}
+          <line x1="-7" y1="1" x2="7" y2="1" stroke="#1e1b4b" strokeWidth="0.8" opacity="0.6"/>
+
+          {/* Side mirrors */}
+          <path d="M-12,-12 L-15,-10 L-15,-7 L-12,-8 Z" fill="#4338ca"/>
+          <path d="M12,-12 L15,-10 L15,-7 L12,-8 Z" fill="#4338ca"/>
+
+          {/* Front headlights */}
+          <rect x="-10" y="-22" width="5" height="3" rx="1" fill="#7C5CF6" opacity="0.9"/>
+          <rect x="5"  y="-22" width="5" height="3" rx="1" fill="#7C5CF6" opacity="0.9"/>
+
+          {/* Rear lights */}
+          <rect x="-10" y="19" width="5" height="3" rx="1" fill="#6d28d9" opacity="0.9"/>
+          <rect x="5"  y="19" width="5" height="3" rx="1" fill="#6d28d9" opacity="0.9"/>
+
+          {/* Front indicator (direction marker) */}
+          <circle cy="-24" cx="0" r="1.8" fill="#7C5CF6" opacity="0.95"/>
+
+          {/* Wheels — front */}
+          <rect x="-16" y="-18" width="5" height="9" rx="2.5" fill="#0f0d2a" stroke="#6366f1" strokeWidth="0.8"/>
+          <rect x="11"  y="-18" width="5" height="9" rx="2.5" fill="#0f0d2a" stroke="#6366f1" strokeWidth="0.8"/>
+          {/* Wheel rims front */}
+          <rect x="-14.5" y="-16.5" width="2" height="6" rx="1" fill="#4338ca"/>
+          <rect x="12.5"  y="-16.5" width="2" height="6" rx="1" fill="#4338ca"/>
+
+          {/* Wheels — rear */}
+          <rect x="-16" y="9" width="5" height="9" rx="2.5" fill="#0f0d2a" stroke="#6366f1" strokeWidth="0.8"/>
+          <rect x="11"  y="9" width="5" height="9" rx="2.5" fill="#0f0d2a" stroke="#6366f1" strokeWidth="0.8"/>
+          {/* Wheel rims rear */}
+          <rect x="-14.5" y="10.5" width="2" height="6" rx="1" fill="#4338ca"/>
+          <rect x="12.5"  y="10.5" width="2" height="6" rx="1" fill="#4338ca"/>
         </g>
 
         {/* Position dots */}
