@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+:root {
+  --bg:       #F2EEFF;
+  --bg2:      #E8E0FF;
+  --card:     #FFFFFF;
+  --primary:  #5B3FE8;
+  --primary2: #7C5CF6;
+  --dark:     #0E0B1F;
+  --dark2:    #1A1535;
+  --text:     #1E1B4B;
+  --muted:    #6B7280;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.viewer-canvas {
+  cursor: grab;
+  touch-action: none;
+}
+.viewer-canvas:active { cursor: grabbing; }
+
+/* 3D car turntable spin */
+@keyframes car-spin {
+  0%   { transform: rotateY(0deg); }
+  100% { transform: rotateY(360deg); }
+}
+
+/* Purple gradient glow blobs */
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+}
