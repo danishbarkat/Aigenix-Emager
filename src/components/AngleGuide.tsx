@@ -110,8 +110,6 @@ export default function AngleGuide({ currentIndex, capturedIndices }: Props) {
           {/* Windshield glare */}
           <path d="M-3,-16 L0,-16 L0,-12 L-2,-12 Z" fill="white" opacity="0.2"/>
 
-          {/* Cabin roof */}
-          <rect x="-9" y="-5" width="18" height="15" rx="2" fill="#13122e" stroke="#312e81" strokeWidth="0.6"/>
 
           {/* Side mirrors — curved blades */}
           <path d="M-11,-4 Q-16,-4 -16,0 Q-16,3 -11,2 Z" fill="#312e81" stroke="#6366f1" strokeWidth="0.8"/>
