@@ -54,7 +54,7 @@ export default function AngleGuide({ currentIndex, capturedIndices }: Props) {
         <circle cx={cx} cy={cy} r={r} fill="none" stroke="#1e293b" strokeWidth="1" />
 
         {/* Done arc segments */}
-        {dots.map(({ x, y, isDone, i }) => {
+        {dots.map(({ isDone, i }) => {
           if (!isDone) return null
           const a0 = ((i * ANGLE_STEP - 90) * Math.PI) / 180
           const a1 = (((i + 1) * ANGLE_STEP - 90) * Math.PI) / 180
