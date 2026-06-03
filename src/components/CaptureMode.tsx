@@ -130,7 +130,7 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
                 ← Back
               </button>
               <span className="text-white font-semibold text-sm tracking-wide">
-                aigenix eMager
+                aigenix Orbit
               </span>
               <button
                 onClick={() => setFacing(f => f === 'environment' ? 'user' : 'environment')}

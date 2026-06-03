@@ -34,7 +34,7 @@ export default function HomePage({ onStart, onView, onSessions, frames }: Props)
           </div>
           <div className="leading-none">
             <span className="font-bold text-sm" style={{ color: '#5B3FE8' }}>aigenix</span>
-            <span className="font-semibold text-sm" style={{ color: '#1E1B4B' }}> eMager</span>
+            <span className="font-semibold text-sm" style={{ color: '#1E1B4B' }}> Orbit</span>
           </div>
         </div>
         <button onClick={onSessions}

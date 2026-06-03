@@ -184,7 +184,7 @@ export default function Viewer360({ frames, sessionId, onBack, onRecapture }: Pr
 
         {/* Top bar */}
         <div className="absolute top-0 inset-x-0 h-16 bg-gradient-to-b from-black/65 to-transparent pointer-events-none flex items-start justify-between px-4 pt-4">
-          <span className="text-white font-bold tracking-widest text-sm">aigenix eMager</span>
+          <span className="text-white font-bold tracking-widest text-sm">aigenix Orbit</span>
           {sessionId && (
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
               style={{ background: 'rgba(91,63,232,0.8)', color: '#EDE9FE' }}>
