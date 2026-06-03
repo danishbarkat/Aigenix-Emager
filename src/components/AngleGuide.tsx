@@ -81,62 +81,48 @@ export default function AngleGuide({ currentIndex, capturedIndices }: Props) {
         <line x1={px} y1={py} x2={lx} y2={ly} stroke="#7C5CF6" strokeWidth="0.8" opacity="0.5" />
         <line x1={px} y1={py} x2={rx} y2={ry} stroke="#7C5CF6" strokeWidth="0.8" opacity="0.5" />
 
-        {/* Clean SUV top-down */}
+        {/* Car top-down */}
         <g transform={`translate(${cx},${cy})`}>
+          {/* 4 wheels */}
+          <circle cx="-13" cy="-13" r="4.5" fill="#0f172a" stroke="#6366f1" strokeWidth="1"/>
+          <circle cx=" 13" cy="-13" r="4.5" fill="#0f172a" stroke="#6366f1" strokeWidth="1"/>
+          <circle cx="-13" cy=" 13" r="4.5" fill="#0f172a" stroke="#6366f1" strokeWidth="1"/>
+          <circle cx=" 13" cy=" 13" r="4.5" fill="#0f172a" stroke="#6366f1" strokeWidth="1"/>
+          <circle cx="-13" cy="-13" r="1.8" fill="#4338ca"/>
+          <circle cx=" 13" cy="-13" r="1.8" fill="#4338ca"/>
+          <circle cx="-13" cy=" 13" r="1.8" fill="#4338ca"/>
+          <circle cx=" 13" cy=" 13" r="1.8" fill="#4338ca"/>
 
-          {/* Shadow */}
-          <rect x="-13" y="-21" width="27" height="43" rx="5"
-            fill="#000" opacity="0.25" transform="translate(1,2)"/>
-
-          {/* Wheels — drawn first so body covers arches */}
-          <rect x="-18" y="-17" width="7" height="10" rx="3" fill="#111827" stroke="#4338ca" strokeWidth="0.8"/>
-          <rect x="11"  y="-17" width="7" height="10" rx="3" fill="#111827" stroke="#4338ca" strokeWidth="0.8"/>
-          <rect x="-18" y="7"   width="7" height="10" rx="3" fill="#111827" stroke="#4338ca" strokeWidth="0.8"/>
-          <rect x="11"  y="7"   width="7" height="10" rx="3" fill="#111827" stroke="#4338ca" strokeWidth="0.8"/>
-          {/* Rim centre */}
-          <circle cx="-14.5" cy="-12" r="2" fill="#4338ca"/>
-          <circle cx="14.5"  cy="-12" r="2" fill="#4338ca"/>
-          <circle cx="-14.5" cy="12"  r="2" fill="#4338ca"/>
-          <circle cx="14.5"  cy="12"  r="2" fill="#4338ca"/>
-
-          {/* ── BODY ── */}
-          <rect x="-13" y="-21" width="26" height="42" rx="5" fill="#3730a3"/>
+          {/* Body */}
+          <rect x="-10" y="-20" width="20" height="40" rx="5" fill="#3730a3"/>
 
           {/* Hood */}
-          <rect x="-11" y="-21" width="22" height="10" rx="4" fill="#4338ca"/>
+          <rect x="-8" y="-20" width="16" height="8" rx="4" fill="#4338ca"/>
 
           {/* Windshield */}
-          <path d="M-9,-11 L9,-11 L8,-4 L-8,-4 Z" fill="#818cf8" opacity="0.7"/>
-          <path d="M-6,-10 L-2,-10 L-3,-5 L-6,-5 Z" fill="white" opacity="0.2"/>
+          <rect x="-7" y="-12" width="14" height="7" rx="1" fill="#818cf8" opacity="0.75"/>
 
-          {/* Cabin */}
-          <rect x="-9" y="-4" width="18" height="18" rx="2" fill="#1e1b4b"/>
-
-          {/* Sunroof */}
-          <rect x="-5" y="-2" width="10" height="9" rx="2"
-            fill="#13122e" stroke="#4338ca" strokeWidth="0.6"/>
-
-          {/* Door line */}
-          <line x1="-9" y1="5" x2="9" y2="5" stroke="#312e81" strokeWidth="1"/>
+          {/* Cabin roof */}
+          <rect x="-8" y="-5" width="16" height="16" rx="2" fill="#1e1b4b"/>
 
           {/* Rear window */}
-          <path d="M-9,14 L9,14 L8,21 L-8,21 Z" fill="#818cf8" opacity="0.4"/>
+          <rect x="-7" y="11" width="14" height="7" rx="1" fill="#818cf8" opacity="0.45"/>
 
           {/* Headlights */}
-          <rect x="-11" y="-21" width="5" height="3" rx="1" fill="#7c5cf6"/>
-          <rect x="6"   y="-21" width="5" height="3" rx="1" fill="#7c5cf6"/>
+          <rect x="-9" y="-20" width="4" height="2.5" rx="1" fill="#a78bfa"/>
+          <rect x=" 5" y="-20" width="4" height="2.5" rx="1" fill="#a78bfa"/>
 
-          {/* Taillights */}
-          <rect x="-11" y="18" width="5" height="3" rx="1" fill="#6d28d9"/>
-          <rect x="6"   y="18" width="5" height="3" rx="1" fill="#6d28d9"/>
+          {/* Tail lights */}
+          <rect x="-9" y="17.5" width="4" height="2.5" rx="1" fill="#7c3aed"/>
+          <rect x=" 5" y="17.5" width="4" height="2.5" rx="1" fill="#7c3aed"/>
 
           {/* Mirrors */}
-          <rect x="-17" y="-8" width="5" height="4" rx="1.5" fill="#312e81" stroke="#6366f1" strokeWidth="0.5"/>
-          <rect x="12"  y="-8" width="5" height="4" rx="1.5" fill="#312e81" stroke="#6366f1" strokeWidth="0.5"/>
+          <rect x="-14" y="-6" width="4" height="3" rx="1" fill="#312e81" stroke="#6366f1" strokeWidth="0.5"/>
+          <rect x=" 10" y="-6" width="4" height="3" rx="1" fill="#312e81" stroke="#6366f1" strokeWidth="0.5"/>
 
           {/* Front dot */}
-          <circle cx="0" cy="-23" r="2" fill="#7c5cf6"/>
-          <circle cx="0" cy="-23" r="1" fill="white" opacity="0.9"/>
+          <circle cx="0" cy="-22" r="2" fill="#7c5cf6"/>
+          <circle cx="0" cy="-22" r="1" fill="white" opacity="0.9"/>
         </g>
 
         {/* Position dots */}
