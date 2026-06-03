@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { CapturedFrame } from '../types'
 import { TOTAL_FRAMES } from '../types'
+import OrbitLogo from './OrbitLogo'
 
 interface Props {
   onStart:    () => void
@@ -27,11 +28,7 @@ export default function HomePage({ onStart, onView, onSessions, frames }: Props)
       {/* Navbar */}
       <nav className="relative z-10 flex items-center justify-between px-6 pt-12 pb-4">
         <div className="flex items-center gap-2">
-          {/* Logo mark */}
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg, #5B3FE8, #7C5CF6)' }}>
-            <span className="text-white text-xs font-black tracking-tight">ai</span>
-          </div>
+          <OrbitLogo size={34} />
           <div className="leading-none">
             <span className="font-bold text-sm" style={{ color: '#5B3FE8' }}>aigenix</span>
             <span className="font-semibold text-sm" style={{ color: '#1E1B4B' }}> Orbit</span>
