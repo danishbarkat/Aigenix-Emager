@@ -136,16 +136,19 @@ export default function AngleGuide({ currentIndex, capturedIndices }: Props) {
           <rect x="-8" y="20" width="4" height="2" rx="1" fill="#7c3aed"/>
           <rect x=" 4" y="20" width="4" height="2" rx="1" fill="#7c3aed"/>
 
-          {/* 4 WHEELS — drawn on top, sticking out from sides */}
-          <rect x="-15" y="-15" width="6" height="9" rx="3" fill="#0f172a" stroke="#6366f1" strokeWidth="1"/>
-          <rect x="  9" y="-15" width="6" height="9" rx="3" fill="#0f172a" stroke="#6366f1" strokeWidth="1"/>
-          <rect x="-15" y="  6" width="6" height="9" rx="3" fill="#0f172a" stroke="#6366f1" strokeWidth="1"/>
-          <rect x="  9" y="  6" width="6" height="9" rx="3" fill="#0f172a" stroke="#6366f1" strokeWidth="1"/>
-          {/* Rims */}
-          <circle cx="-12" cy="-10.5" r="1.8" fill="#4338ca"/>
-          <circle cx=" 12" cy="-10.5" r="1.8" fill="#4338ca"/>
-          <circle cx="-12" cy=" 10.5" r="1.8" fill="#4338ca"/>
-          <circle cx=" 12" cy=" 10.5" r="1.8" fill="#4338ca"/>
+          {/* 4 WHEELS */}
+          <rect x="-16" y="-16" width="7" height="11" rx="3.5" fill="#0f172a" stroke="#818cf8" strokeWidth="1.2"/>
+          <rect x="  9" y="-16" width="7" height="11" rx="3.5" fill="#0f172a" stroke="#818cf8" strokeWidth="1.2"/>
+          <rect x="-16" y="  5" width="7" height="11" rx="3.5" fill="#0f172a" stroke="#818cf8" strokeWidth="1.2"/>
+          <rect x="  9" y="  5" width="7" height="11" rx="3.5" fill="#0f172a" stroke="#818cf8" strokeWidth="1.2"/>
+          <circle cx="-12.5" cy="-10.5" r="2.5" fill="#312e81" stroke="#6366f1" strokeWidth="0.8"/>
+          <circle cx=" 12.5" cy="-10.5" r="2.5" fill="#312e81" stroke="#6366f1" strokeWidth="0.8"/>
+          <circle cx="-12.5" cy=" 10.5" r="2.5" fill="#312e81" stroke="#6366f1" strokeWidth="0.8"/>
+          <circle cx=" 12.5" cy=" 10.5" r="2.5" fill="#312e81" stroke="#6366f1" strokeWidth="0.8"/>
+          <circle cx="-12.5" cy="-10.5" r="1" fill="#818cf8"/>
+          <circle cx=" 12.5" cy="-10.5" r="1" fill="#818cf8"/>
+          <circle cx="-12.5" cy=" 10.5" r="1" fill="#818cf8"/>
+          <circle cx=" 12.5" cy=" 10.5" r="1" fill="#818cf8"/>
 
           {/* Front indicator */}
           <circle cx="0" cy="-23" r="1.5" fill="#7c5cf6"/>
