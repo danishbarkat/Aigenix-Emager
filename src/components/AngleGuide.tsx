@@ -3,11 +3,12 @@ import { TOTAL_FRAMES, ANGLE_STEP, POSITION_LABELS } from '../types'
 interface Props {
   currentIndex: number
   capturedIndices: Set<number>
+  size?: number
 }
 
 const FOV_DEG = 50 // camera field-of-view cone angle
 
-export default function AngleGuide({ currentIndex, capturedIndices }: Props) {
+export default function AngleGuide({ currentIndex, capturedIndices, size = 160 }: Props) {
   const cx = 80
   const cy = 80
   const r  = 52   // orbit radius
@@ -39,7 +40,7 @@ export default function AngleGuide({ currentIndex, capturedIndices }: Props) {
 
   return (
     <div className="flex flex-col items-center gap-1">
-      <svg width="160" height="160" viewBox="0 0 160 160">
+      <svg width={size} height={size} viewBox="0 0 160 160">
         <defs>
           <radialGradient id="torchGrad" cx="0%" cy="50%" r="100%">
             <stop offset="0%"   stopColor="#7C5CF6" stopOpacity="0.35" />

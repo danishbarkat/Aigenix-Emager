@@ -44,6 +44,19 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
   const [cameraError, setCameraError] = useState('')
   const [facing, setFacing] = useState<'environment' | 'user'>('environment')
   const [captureWarning, setCaptureWarning] = useState('')
+  const [isLandscape, setIsLandscape] = useState(
+    typeof window !== 'undefined' && window.innerWidth > window.innerHeight
+  )
+
+  useEffect(() => {
+    const update = () => setIsLandscape(window.innerWidth > window.innerHeight)
+    window.addEventListener('resize', update)
+    window.addEventListener('orientationchange', () => setTimeout(update, 100))
+    return () => {
+      window.removeEventListener('resize', update)
+      window.removeEventListener('orientationchange', update)
+    }
+  }, [])
 
   const startCamera = useCallback(async (facingMode: 'environment' | 'user') => {
     try {
@@ -131,131 +144,141 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
 
   const progressPct = Math.round((capturedSet.size / TOTAL_FRAMES) * 100)
 
+  // Shared camera view content (overlay elements inside the video area)
+  const cameraArea = (
+    <div className="relative flex-1 overflow-hidden">
+      {cameraError ? (
+        <div className="absolute inset-0 flex items-center justify-center p-8 text-center">
+          <p className="text-red-400">{cameraError}</p>
+        </div>
+      ) : (
+        <>
+          <video ref={videoRef} autoPlay playsInline muted
+            className="absolute inset-0 w-full h-full object-cover" />
+          <canvas ref={canvasRef} className="hidden" />
+          <div className="absolute inset-0 capture-overlay pointer-events-none" />
+
+          {flash && (
+            <div className="absolute inset-0 bg-white opacity-70 pointer-events-none transition-opacity duration-300" />
+          )}
+
+          {captureWarning && (
+            <div className="absolute top-20 inset-x-4 flex justify-center z-20 pointer-events-none">
+              <div className="bg-red-500/95 backdrop-blur-sm text-white text-sm font-semibold px-5 py-2.5 rounded-2xl text-center shadow-lg max-w-xs">
+                ⚠️ {captureWarning}
+              </div>
+            </div>
+          )}
+
+          {/* Corner guides */}
+          <div className="absolute inset-4 pointer-events-none">
+            <div className="absolute top-0 left-0 w-10 h-10 border-t-2 border-l-2 border-violet-500 rounded-tl-lg" />
+            <div className="absolute top-0 right-0 w-10 h-10 border-t-2 border-r-2 border-violet-500 rounded-tr-lg" />
+            <div className="absolute bottom-0 left-0 w-10 h-10 border-b-2 border-l-2 border-violet-500 rounded-bl-lg" />
+            <div className="absolute bottom-0 right-0 w-10 h-10 border-b-2 border-r-2 border-violet-500 rounded-br-lg" />
+          </div>
+
+          {/* Top bar */}
+          <div className="absolute top-0 inset-x-0 flex items-center justify-between px-4 pt-3 pb-3 bg-gradient-to-b from-black/70 to-transparent">
+            <button onClick={onBack} className="text-white/80 text-sm">← Back</button>
+            <span className="text-white font-semibold text-sm tracking-wide">AiGenix OrbiT</span>
+            <button onClick={() => setFacing(f => f === 'environment' ? 'user' : 'environment')}
+              className="text-white/80 text-sm">🔄</button>
+          </div>
+
+          {/* Angle label */}
+          {cameraReady && (
+            <div className="absolute top-14 inset-x-0 flex flex-col items-center gap-1 pointer-events-none">
+              <div className="bg-black/70 backdrop-blur-sm rounded-full px-4 py-1 text-sm font-semibold text-violet-300">
+                {capturedSet.has(currentIndex) ? '✓ ' : '📸 '}{POSITION_LABELS[currentIndex]}
+              </div>
+              <div className="bg-black/50 backdrop-blur-sm rounded-full px-3 py-0.5 text-xs text-slate-300">
+                {capturedSet.has(currentIndex)
+                  ? 'Re-capture this angle'
+                  : `Position ${currentIndex + 1}/18 · ${currentIndex * ANGLE_STEP}°`}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+
+  if (isLandscape) {
+    // ── LANDSCAPE: camera left, controls right sidebar ──
+    return (
+      <div className="flex flex-row h-dvh bg-black overflow-hidden">
+        {cameraArea}
+
+        {/* Right sidebar */}
+        <div className="w-44 bg-black/90 border-l border-slate-800 flex flex-col items-center gap-2 px-3 py-3">
+          <AngleGuide currentIndex={currentIndex} capturedIndices={capturedSet} size={116} />
+
+          {/* Progress */}
+          <div className="w-full flex items-center gap-2">
+            <span className="text-[10px] text-slate-400">{capturedSet.size}</span>
+            <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-full bg-violet-600 transition-all duration-300 rounded-full"
+                style={{ width: `${progressPct}%` }} />
+            </div>
+            <span className="text-[10px] text-slate-400">{TOTAL_FRAMES}</span>
+          </div>
+
+          {/* Shutter */}
+          <button onClick={captureFrame} disabled={!cameraReady}
+            className="w-14 h-14 rounded-full bg-white border-4 border-violet-500 active:scale-95 transition-transform disabled:opacity-40 flex-shrink-0"
+            style={{ width: 56, height: 56 }} />
+
+          {/* Nav arrows */}
+          <div className="flex gap-2">
+            <button onClick={() => setCurrentIndex(i => (i - 1 + TOTAL_FRAMES) % TOTAL_FRAMES)}
+              className="w-8 h-8 rounded-full bg-slate-700 text-white text-sm active:bg-slate-600">‹</button>
+            <button onClick={() => setCurrentIndex(i => (i + 1) % TOTAL_FRAMES)}
+              className="w-8 h-8 rounded-full bg-slate-700 text-white text-sm active:bg-slate-600">›</button>
+          </div>
+
+          {/* Done */}
+          <button onClick={handleComplete} disabled={capturedSet.size < 3}
+            className="text-xs px-3 py-1.5 rounded-full bg-violet-600 text-white font-semibold disabled:opacity-30 active:bg-violet-700 w-full text-center mt-auto">
+            {capturedSet.size >= TOTAL_FRAMES ? '✓ Done' : `View (${capturedSet.size}/18)`}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── PORTRAIT: camera top, controls bottom bar ──
   return (
     <div className="flex flex-col h-dvh bg-black overflow-hidden">
-      {/* Camera view */}
-      <div className="relative flex-1 overflow-hidden">
-        {cameraError ? (
-          <div className="absolute inset-0 flex items-center justify-center p-8 text-center">
-            <p className="text-red-400">{cameraError}</p>
-          </div>
-        ) : (
-          <>
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-            <canvas ref={canvasRef} className="hidden" />
-
-            {/* Capture overlay vignette */}
-            <div className="absolute inset-0 capture-overlay pointer-events-none" />
-
-            {/* Flash effect */}
-            {flash && (
-              <div className="absolute inset-0 bg-white opacity-70 pointer-events-none transition-opacity duration-300" />
-            )}
-
-            {/* Capture warning toast */}
-            {captureWarning && (
-              <div className="absolute top-24 inset-x-4 flex justify-center z-20 pointer-events-none">
-                <div className="bg-red-500/95 backdrop-blur-sm text-white text-sm font-semibold px-5 py-2.5 rounded-2xl text-center shadow-lg max-w-xs">
-                  ⚠️ {captureWarning}
-                </div>
-              </div>
-            )}
-
-            {/* Corner guides */}
-            <div className="absolute inset-4 pointer-events-none">
-              <div className="absolute top-0 left-0 w-12 h-12 border-t-2 border-l-2 border-violet-500 rounded-tl-lg" />
-              <div className="absolute top-0 right-0 w-12 h-12 border-t-2 border-r-2 border-violet-500 rounded-tr-lg" />
-              <div className="absolute bottom-0 left-0 w-12 h-12 border-b-2 border-l-2 border-violet-500 rounded-bl-lg" />
-              <div className="absolute bottom-0 right-0 w-12 h-12 border-b-2 border-r-2 border-violet-500 rounded-br-lg" />
-            </div>
-
-            {/* Top bar */}
-            <div className="absolute top-0 inset-x-0 flex items-center justify-between px-4 pt-safe-top pt-4 pb-3 bg-gradient-to-b from-black/70 to-transparent">
-              <button onClick={onBack} className="text-white/80 text-sm flex items-center gap-1">
-                ← Back
-              </button>
-              <span className="text-white font-semibold text-sm tracking-wide">
-                aigenix Orbit
-              </span>
-              <button
-                onClick={() => setFacing(f => f === 'environment' ? 'user' : 'environment')}
-                className="text-white/80 text-sm"
-              >
-                🔄
-              </button>
-            </div>
-
-            {/* Angle instruction */}
-            {cameraReady && (
-              <div className="absolute top-16 inset-x-0 flex flex-col items-center gap-1 pointer-events-none">
-                <div className="bg-black/70 backdrop-blur-sm rounded-full px-5 py-1.5 text-sm font-semibold text-violet-300">
-                  {capturedSet.has(currentIndex) ? '✓ ' : '📸 '}
-                  {POSITION_LABELS[currentIndex]}
-                </div>
-                <div className="bg-black/50 backdrop-blur-sm rounded-full px-3 py-0.5 text-xs text-slate-300">
-                  {capturedSet.has(currentIndex)
-                    ? 'Re-capture this angle'
-                    : `Position ${currentIndex + 1}/18 · ${currentIndex * ANGLE_STEP}°`}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+      {cameraArea}
 
       {/* Bottom controls */}
-      <div className="bg-black/180 backdrop-blur-md px-4 pt-4 pb-safe-bottom pb-6">
-        {/* Progress bar */}
-        <div className="flex items-center gap-3 mb-4">
+      <div className="bg-black/90 backdrop-blur-md px-4 pt-4 pb-6">
+        <div className="flex items-center gap-3 mb-3">
           <span className="text-xs text-slate-400 w-8">{capturedSet.size}</span>
           <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-violet-600 transition-all duration-300 rounded-full"
-              style={{ width: `${progressPct}%` }}
-            />
+            <div className="h-full bg-violet-600 transition-all duration-300 rounded-full"
+              style={{ width: `${progressPct}%` }} />
           </div>
           <span className="text-xs text-slate-400 w-8 text-right">{TOTAL_FRAMES}</span>
         </div>
 
         <div className="flex items-end justify-between gap-4">
-          {/* Angle guide mini map */}
           <AngleGuide currentIndex={currentIndex} capturedIndices={capturedSet} />
 
-          {/* Shutter button */}
-          <button
-            onClick={captureFrame}
-            disabled={!cameraReady}
-            className="flex-shrink-0 w-18 h-18 rounded-full bg-white border-4 border-violet-500 shadow-lg shadow-orange-500/30 active:scale-95 transition-transform disabled:opacity-40"
-            style={{ width: 72, height: 72 }}
-          />
+          <button onClick={captureFrame} disabled={!cameraReady}
+            className="flex-shrink-0 rounded-full bg-white border-4 border-violet-500 shadow-lg active:scale-95 transition-transform disabled:opacity-40"
+            style={{ width: 72, height: 72 }} />
 
-          {/* Nav + Done */}
           <div className="flex flex-col gap-2 items-center">
             <div className="flex gap-2">
-              <button
-                onClick={() => setCurrentIndex(i => (i - 1 + TOTAL_FRAMES) % TOTAL_FRAMES)}
-                className="w-9 h-9 rounded-full bg-slate-700 text-white text-sm active:bg-slate-600"
-              >
-                ‹
-              </button>
-              <button
-                onClick={() => setCurrentIndex(i => (i + 1) % TOTAL_FRAMES)}
-                className="w-9 h-9 rounded-full bg-slate-700 text-white text-sm active:bg-slate-600"
-              >
-                ›
-              </button>
+              <button onClick={() => setCurrentIndex(i => (i - 1 + TOTAL_FRAMES) % TOTAL_FRAMES)}
+                className="w-9 h-9 rounded-full bg-slate-700 text-white text-sm active:bg-slate-600">‹</button>
+              <button onClick={() => setCurrentIndex(i => (i + 1) % TOTAL_FRAMES)}
+                className="w-9 h-9 rounded-full bg-slate-700 text-white text-sm active:bg-slate-600">›</button>
             </div>
-            <button
-              onClick={handleComplete}
-              disabled={capturedSet.size < 3}
-              className="text-xs px-3 py-1.5 rounded-full bg-violet-600 text-white font-semibold disabled:opacity-30 active:bg-violet-700"
-            >
+            <button onClick={handleComplete} disabled={capturedSet.size < 3}
+              className="text-xs px-3 py-1.5 rounded-full bg-violet-600 text-white font-semibold disabled:opacity-30 active:bg-violet-700">
               {capturedSet.size >= TOTAL_FRAMES ? '✓ Auto...' : `View (${capturedSet.size}/18)`}
             </button>
           </div>
