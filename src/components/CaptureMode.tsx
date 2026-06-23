@@ -50,11 +50,12 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
 
   useEffect(() => {
     const update = () => setIsLandscape(window.innerWidth > window.innerHeight)
+    const onOrient = () => setTimeout(update, 100)
     window.addEventListener('resize', update)
-    window.addEventListener('orientationchange', () => setTimeout(update, 100))
+    window.addEventListener('orientationchange', onOrient)
     return () => {
       window.removeEventListener('resize', update)
-      window.removeEventListener('orientationchange', update)
+      window.removeEventListener('orientationchange', onOrient)
     }
   }, [])
 
@@ -100,9 +101,16 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
       return
     }
 
-    // Block: too similar to last captured frame — user hasn't moved
-    if (lastHashRef.current && hashSimilarity(hash, lastHashRef.current) > 0.90) {
-      setCaptureWarning('Same angle — walk to the next position around the vehicle')
+    // Block: must begin at the FRONT of the vehicle
+    if (capturedSet.size === 0 && currentIndex !== 0) {
+      setCaptureWarning('Start at the FRONT of your vehicle — position 1')
+      setTimeout(() => setCaptureWarning(''), 2800)
+      return
+    }
+
+    // Block: image too similar to last captured — user hasn't moved far enough
+    if (lastHashRef.current && hashSimilarity(hash, lastHashRef.current) > 0.88) {
+      setCaptureWarning('Move further around the vehicle before capturing')
       setTimeout(() => setCaptureWarning(''), 2800)
       return
     }
@@ -189,14 +197,27 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
           {/* Angle label */}
           {cameraReady && (
             <div className="absolute top-14 inset-x-0 flex flex-col items-center gap-1 pointer-events-none">
-              <div className="bg-black/70 backdrop-blur-sm rounded-full px-4 py-1 text-sm font-semibold text-violet-300">
-                {capturedSet.has(currentIndex) ? '✓ ' : '📸 '}{POSITION_LABELS[currentIndex]}
-              </div>
-              <div className="bg-black/50 backdrop-blur-sm rounded-full px-3 py-0.5 text-xs text-slate-300">
-                {capturedSet.has(currentIndex)
-                  ? 'Re-capture this angle'
-                  : `Position ${currentIndex + 1}/18 · ${currentIndex * ANGLE_STEP}°`}
-              </div>
+              {capturedSet.size === 0 ? (
+                <>
+                  <div className="bg-violet-600/90 backdrop-blur-sm rounded-full px-5 py-1.5 text-sm font-bold text-white">
+                    🚗 Stand at the FRONT of your vehicle
+                  </div>
+                  <div className="bg-black/60 backdrop-blur-sm rounded-full px-3 py-0.5 text-xs text-slate-300">
+                    First shot must be the front — then walk clockwise
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="bg-black/70 backdrop-blur-sm rounded-full px-4 py-1 text-sm font-semibold text-violet-300">
+                    {capturedSet.has(currentIndex) ? '✓ ' : '📸 '}{POSITION_LABELS[currentIndex]}
+                  </div>
+                  <div className="bg-black/50 backdrop-blur-sm rounded-full px-3 py-0.5 text-xs text-slate-300">
+                    {capturedSet.has(currentIndex)
+                      ? 'Re-capture this angle'
+                      : `Position ${currentIndex + 1}/18 · ${currentIndex * ANGLE_STEP}°`}
+                  </div>
+                </>
+              )}
             </div>
           )}
         </>
