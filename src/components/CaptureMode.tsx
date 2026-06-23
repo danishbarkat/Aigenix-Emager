@@ -2,6 +2,9 @@ import { useRef, useEffect, useState, useCallback } from 'react'
 import type { CapturedFrame } from '../types'
 import { TOTAL_FRAMES, ANGLE_STEP, POSITION_LABELS } from '../types'
 import AngleGuide from './AngleGuide'
+import type { ObjectDetection } from '@tensorflow-models/coco-ssd'
+
+const VEHICLE_CLASSES = new Set(['car', 'truck', 'bus', 'motorcycle', 'van'])
 
 interface Props {
   onComplete: (frames: CapturedFrame[]) => void
@@ -31,10 +34,11 @@ function hashSimilarity(a: number[], b: number[]): number {
 }
 
 export default function CaptureMode({ onComplete, onBack }: Props) {
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const streamRef = useRef<MediaStream | null>(null)
+  const videoRef    = useRef<HTMLVideoElement>(null)
+  const canvasRef   = useRef<HTMLCanvasElement>(null)
+  const streamRef   = useRef<MediaStream | null>(null)
   const lastHashRef = useRef<number[] | null>(null)
+  const modelRef    = useRef<ObjectDetection | null>(null)
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [frames, setFrames] = useState<CapturedFrame[]>([])
@@ -44,6 +48,8 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
   const [cameraError, setCameraError] = useState('')
   const [facing, setFacing] = useState<'environment' | 'user'>('environment')
   const [captureWarning, setCaptureWarning] = useState('')
+  const [modelStatus, setModelStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [detecting, setDetecting] = useState(false)
   const [isLandscape, setIsLandscape] = useState(
     typeof window !== 'undefined' && window.innerWidth > window.innerHeight
   )
@@ -57,6 +63,15 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
       window.removeEventListener('resize', update)
       window.removeEventListener('orientationchange', onOrient)
     }
+  }, [])
+
+  // Lazy-load TF.js + COCO-SSD only when capture mode opens
+  useEffect(() => {
+    import('@tensorflow/tfjs')
+      .then(() => import('@tensorflow-models/coco-ssd'))
+      .then(mod => mod.load({ base: 'mobilenet_v2' }))
+      .then(model => { modelRef.current = model; setModelStatus('ready') })
+      .catch(() => setModelStatus('error'))
   }, [])
 
   const startCamera = useCallback(async (facingMode: 'environment' | 'user') => {
@@ -83,8 +98,13 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
     return () => { streamRef.current?.getTracks().forEach(t => t.stop()) }
   }, [facing, startCamera])
 
-  const captureFrame = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current) return
+  const warn = useCallback((msg: string) => {
+    setCaptureWarning(msg)
+    setTimeout(() => setCaptureWarning(''), 2800)
+  }, [])
+
+  const captureFrame = useCallback(async () => {
+    if (!videoRef.current || !canvasRef.current || detecting) return
     const video = videoRef.current
     const canvas = canvasRef.current
     canvas.width = video.videoWidth
@@ -94,24 +114,36 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
 
     const { hash, variance } = computeHash(canvas)
 
-    // Block: image too uniform — no vehicle in frame
+    // Fast pre-check: image too uniform (lens covered, pitch-black, blank wall)
     if (variance < 150) {
-      setCaptureWarning('No vehicle detected — point camera at your vehicle')
-      setTimeout(() => setCaptureWarning(''), 2800)
+      warn('No vehicle in frame — aim your camera at the vehicle')
       return
+    }
+
+    // AI vehicle detection (if model is ready)
+    if (modelRef.current) {
+      setDetecting(true)
+      try {
+        const preds = await modelRef.current.detect(video)
+        const hasVehicle = preds.some(p => VEHICLE_CLASSES.has(p.class) && p.score > 0.40)
+        if (!hasVehicle) {
+          warn('No vehicle detected — point camera directly at your car')
+          return
+        }
+      } finally {
+        setDetecting(false)
+      }
     }
 
     // Block: must begin at the FRONT of the vehicle
     if (capturedSet.size === 0 && currentIndex !== 0) {
-      setCaptureWarning('Start at the FRONT of your vehicle — position 1')
-      setTimeout(() => setCaptureWarning(''), 2800)
+      warn('Start at the FRONT of your vehicle — position 1')
       return
     }
 
     // Block: image too similar to last captured — user hasn't moved far enough
     if (lastHashRef.current && hashSimilarity(hash, lastHashRef.current) > 0.88) {
-      setCaptureWarning('Move further around the vehicle before capturing')
-      setTimeout(() => setCaptureWarning(''), 2800)
+      warn('Move further around the vehicle before capturing')
       return
     }
 
@@ -140,7 +172,7 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
       next = (next + 1) % TOTAL_FRAMES
     }
     setCurrentIndex(next)
-  }, [currentIndex, frames, capturedSet, onComplete])
+  }, [currentIndex, frames, capturedSet, onComplete, detecting, warn])
 
   const handleComplete = () => {
     if (frames.length < 3) {
@@ -168,6 +200,26 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
 
           {flash && (
             <div className="absolute inset-0 bg-white opacity-70 pointer-events-none transition-opacity duration-300" />
+          )}
+
+          {/* AI model loading banner */}
+          {modelStatus === 'loading' && (
+            <div className="absolute bottom-2 inset-x-4 flex justify-center z-20 pointer-events-none">
+              <div className="bg-black/80 backdrop-blur-sm text-violet-300 text-xs font-semibold px-4 py-1.5 rounded-full flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-violet-400 animate-pulse inline-block"/>
+                Loading AI vehicle detector…
+              </div>
+            </div>
+          )}
+
+          {/* Detecting spinner */}
+          {detecting && (
+            <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+              <div className="bg-black/70 backdrop-blur-sm rounded-2xl px-6 py-3 flex items-center gap-3">
+                <span className="w-3 h-3 rounded-full bg-violet-400 animate-ping inline-block"/>
+                <span className="text-white text-sm font-semibold">Detecting vehicle…</span>
+              </div>
+            </div>
           )}
 
           {captureWarning && (
@@ -246,7 +298,7 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
           </div>
 
           {/* Shutter */}
-          <button onClick={captureFrame} disabled={!cameraReady}
+          <button onClick={captureFrame} disabled={!cameraReady || detecting}
             className="w-14 h-14 rounded-full bg-white border-4 border-violet-500 active:scale-95 transition-transform disabled:opacity-40 flex-shrink-0"
             style={{ width: 56, height: 56 }} />
 
@@ -287,7 +339,7 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
         <div className="flex items-end justify-between gap-4">
           <AngleGuide currentIndex={currentIndex} capturedIndices={capturedSet} />
 
-          <button onClick={captureFrame} disabled={!cameraReady}
+          <button onClick={captureFrame} disabled={!cameraReady || detecting}
             className="flex-shrink-0 rounded-full bg-white border-4 border-violet-500 shadow-lg active:scale-95 transition-transform disabled:opacity-40"
             style={{ width: 72, height: 72 }} />
 
