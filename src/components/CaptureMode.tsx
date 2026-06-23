@@ -8,10 +8,33 @@ interface Props {
   onBack: () => void
 }
 
+// Downsample canvas to 16×16 grayscale hash + variance
+function computeHash(canvas: HTMLCanvasElement): { hash: number[]; variance: number } {
+  const small = document.createElement('canvas')
+  small.width = 16; small.height = 16
+  const ctx = small.getContext('2d')!
+  ctx.drawImage(canvas, 0, 0, 16, 16)
+  const data = ctx.getImageData(0, 0, 16, 16).data
+  const hash: number[] = []
+  for (let i = 0; i < data.length; i += 4) {
+    hash.push((data[i] + data[i + 1] + data[i + 2]) / 3)
+  }
+  const avg = hash.reduce((a, b) => a + b, 0) / hash.length
+  const variance = hash.reduce((s, v) => s + (v - avg) ** 2, 0) / hash.length
+  return { hash, variance }
+}
+
+function hashSimilarity(a: number[], b: number[]): number {
+  let diff = 0
+  for (let i = 0; i < a.length; i++) diff += Math.abs(a[i] - b[i])
+  return 1 - diff / (a.length * 255)
+}
+
 export default function CaptureMode({ onComplete, onBack }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
+  const lastHashRef = useRef<number[] | null>(null)
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [frames, setFrames] = useState<CapturedFrame[]>([])
@@ -20,6 +43,7 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
   const [cameraReady, setCameraReady] = useState(false)
   const [cameraError, setCameraError] = useState('')
   const [facing, setFacing] = useState<'environment' | 'user'>('environment')
+  const [captureWarning, setCaptureWarning] = useState('')
 
   const startCamera = useCallback(async (facingMode: 'environment' | 'user') => {
     try {
@@ -53,6 +77,24 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
     canvas.height = video.videoHeight
     const ctx = canvas.getContext('2d')!
     ctx.drawImage(video, 0, 0)
+
+    const { hash, variance } = computeHash(canvas)
+
+    // Block: image too uniform — no vehicle in frame
+    if (variance < 150) {
+      setCaptureWarning('No vehicle detected — point camera at your vehicle')
+      setTimeout(() => setCaptureWarning(''), 2800)
+      return
+    }
+
+    // Block: too similar to last captured frame — user hasn't moved
+    if (lastHashRef.current && hashSimilarity(hash, lastHashRef.current) > 0.90) {
+      setCaptureWarning('Same angle — walk to the next position around the vehicle')
+      setTimeout(() => setCaptureWarning(''), 2800)
+      return
+    }
+
+    lastHashRef.current = hash
     const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
 
     const newFrame: CapturedFrame = { angle: currentIndex * ANGLE_STEP, dataUrl }
@@ -114,6 +156,15 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
             {/* Flash effect */}
             {flash && (
               <div className="absolute inset-0 bg-white opacity-70 pointer-events-none transition-opacity duration-300" />
+            )}
+
+            {/* Capture warning toast */}
+            {captureWarning && (
+              <div className="absolute top-24 inset-x-4 flex justify-center z-20 pointer-events-none">
+                <div className="bg-red-500/95 backdrop-blur-sm text-white text-sm font-semibold px-5 py-2.5 rounded-2xl text-center shadow-lg max-w-xs">
+                  ⚠️ {captureWarning}
+                </div>
+              </div>
             )}
 
             {/* Corner guides */}
