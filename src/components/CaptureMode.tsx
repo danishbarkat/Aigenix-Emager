@@ -2,7 +2,7 @@ import { useRef, useEffect, useState, useCallback } from 'react'
 import type { CapturedFrame } from '../types'
 import { TOTAL_FRAMES, ANGLE_STEP, POSITION_LABELS } from '../types'
 import AngleGuide from './AngleGuide'
-import type { ObjectDetection } from '@tensorflow-models/coco-ssd'
+import { getDetectorModel, getDetectorStatus, onDetectorReady } from '../utils/vehicleDetector'
 
 const VEHICLE_CLASSES = new Set(['car', 'truck', 'bus', 'motorcycle', 'van'])
 
@@ -38,7 +38,6 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
   const canvasRef   = useRef<HTMLCanvasElement>(null)
   const streamRef   = useRef<MediaStream | null>(null)
   const lastHashRef = useRef<number[] | null>(null)
-  const modelRef    = useRef<ObjectDetection | null>(null)
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [frames, setFrames] = useState<CapturedFrame[]>([])
@@ -48,7 +47,7 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
   const [cameraError, setCameraError] = useState('')
   const [facing, setFacing] = useState<'environment' | 'user'>('environment')
   const [captureWarning, setCaptureWarning] = useState('')
-  const [modelStatus, setModelStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [modelStatus, setModelStatus] = useState(getDetectorStatus)
   const [detecting, setDetecting] = useState(false)
   const [isLandscape, setIsLandscape] = useState(
     typeof window !== 'undefined' && window.innerWidth > window.innerHeight
@@ -65,13 +64,9 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
     }
   }, [])
 
-  // Lazy-load TF.js + COCO-SSD only when capture mode opens
+  // Subscribe to model ready event (model may already be ready if user spent time on homepage)
   useEffect(() => {
-    import('@tensorflow/tfjs')
-      .then(() => import('@tensorflow-models/coco-ssd'))
-      .then(mod => mod.load({ base: 'mobilenet_v2' }))
-      .then(model => { modelRef.current = model; setModelStatus('ready') })
-      .catch(() => setModelStatus('error'))
+    onDetectorReady(s => setModelStatus(s))
   }, [])
 
   const startCamera = useCallback(async (facingMode: 'environment' | 'user') => {
@@ -121,10 +116,11 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
     }
 
     // AI vehicle detection (if model is ready)
-    if (modelRef.current) {
+    const model = getDetectorModel()
+    if (model) {
       setDetecting(true)
       try {
-        const preds = await modelRef.current.detect(video)
+        const preds = await model.detect(video)
         const hasVehicle = preds.some(p => VEHICLE_CLASSES.has(p.class) && p.score > 0.40)
         if (!hasVehicle) {
           warn('No vehicle detected — point camera directly at your car')
