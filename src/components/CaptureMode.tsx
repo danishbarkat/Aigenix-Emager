@@ -2,9 +2,8 @@ import { useRef, useEffect, useState, useCallback } from 'react'
 import type { CapturedFrame } from '../types'
 import { TOTAL_FRAMES, ANGLE_STEP, POSITION_LABELS } from '../types'
 import AngleGuide from './AngleGuide'
-import { getDetectorModel, getDetectorStatus, onDetectorReady } from '../utils/vehicleDetector'
+import { hasVehicleInFrame, getDetectorStatus, onDetectorReady } from '../utils/vehicleDetector'
 
-const VEHICLE_CLASSES = new Set(['car', 'truck', 'bus', 'motorcycle', 'van'])
 
 interface Props {
   onComplete: (frames: CapturedFrame[]) => void
@@ -48,7 +47,6 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
   const [facing, setFacing] = useState<'environment' | 'user'>('environment')
   const [captureWarning, setCaptureWarning] = useState('')
   const [modelStatus, setModelStatus] = useState(getDetectorStatus)
-  const [detecting, setDetecting] = useState(false)
   const [isLandscape, setIsLandscape] = useState(
     typeof window !== 'undefined' && window.innerWidth > window.innerHeight
   )
@@ -98,8 +96,8 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
     setTimeout(() => setCaptureWarning(''), 2800)
   }, [])
 
-  const captureFrame = useCallback(async () => {
-    if (!videoRef.current || !canvasRef.current || detecting) return
+  const captureFrame = useCallback(() => {
+    if (!videoRef.current || !canvasRef.current) return
     const video = videoRef.current
     const canvas = canvasRef.current
     canvas.width = video.videoWidth
@@ -109,26 +107,16 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
 
     const { hash, variance } = computeHash(canvas)
 
-    // Fast pre-check: image too uniform (lens covered, pitch-black, blank wall)
+    // Fast pre-check: image too uniform (lens covered / pitch-black)
     if (variance < 150) {
       warn('No vehicle in frame — aim your camera at the vehicle')
       return
     }
 
-    // AI vehicle detection (if model is ready)
-    const model = getDetectorModel()
-    if (model) {
-      setDetecting(true)
-      try {
-        const preds = await model.detect(video)
-        const hasVehicle = preds.some(p => VEHICLE_CLASSES.has(p.class) && p.score > 0.40)
-        if (!hasVehicle) {
-          warn('No vehicle detected — point camera directly at your car')
-          return
-        }
-      } finally {
-        setDetecting(false)
-      }
+    // AI vehicle detection — synchronous, ~5ms with MediaPipe
+    if (!hasVehicleInFrame(video)) {
+      warn('No vehicle detected — point camera directly at your car')
+      return
     }
 
     // Block: must begin at the FRONT of the vehicle
@@ -168,7 +156,7 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
       next = (next + 1) % TOTAL_FRAMES
     }
     setCurrentIndex(next)
-  }, [currentIndex, frames, capturedSet, onComplete, detecting, warn])
+  }, [currentIndex, frames, capturedSet, onComplete, warn])
 
   const handleComplete = () => {
     if (frames.length < 3) {
@@ -204,16 +192,6 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
               <div className="bg-black/80 backdrop-blur-sm text-violet-300 text-xs font-semibold px-4 py-1.5 rounded-full flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-violet-400 animate-pulse inline-block"/>
                 Loading AI vehicle detector…
-              </div>
-            </div>
-          )}
-
-          {/* Detecting spinner */}
-          {detecting && (
-            <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-              <div className="bg-black/70 backdrop-blur-sm rounded-2xl px-6 py-3 flex items-center gap-3">
-                <span className="w-3 h-3 rounded-full bg-violet-400 animate-ping inline-block"/>
-                <span className="text-white text-sm font-semibold">Detecting vehicle…</span>
               </div>
             </div>
           )}
@@ -294,7 +272,7 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
           </div>
 
           {/* Shutter */}
-          <button onClick={captureFrame} disabled={!cameraReady || detecting}
+          <button onClick={captureFrame} disabled={!cameraReady}
             className="w-14 h-14 rounded-full bg-white border-4 border-violet-500 active:scale-95 transition-transform disabled:opacity-40 flex-shrink-0"
             style={{ width: 56, height: 56 }} />
 
@@ -335,7 +313,7 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
         <div className="flex items-end justify-between gap-4">
           <AngleGuide currentIndex={currentIndex} capturedIndices={capturedSet} />
 
-          <button onClick={captureFrame} disabled={!cameraReady || detecting}
+          <button onClick={captureFrame} disabled={!cameraReady}
             className="flex-shrink-0 rounded-full bg-white border-4 border-violet-500 shadow-lg active:scale-95 transition-transform disabled:opacity-40"
             style={{ width: 72, height: 72 }} />
 
