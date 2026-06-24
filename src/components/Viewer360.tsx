@@ -16,7 +16,7 @@ interface Props {
 
 export default function Viewer360({ frames, sessionId, onBack, onRecapture }: Props) {
   const wrapRef   = useRef<HTMLDivElement>(null)
-  const imgRef    = useRef<HTMLImageElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
   const imgsRef   = useRef<HTMLImageElement[]>([])
 
   const posRef    = useRef(0)
@@ -27,7 +27,7 @@ export default function Viewer360({ frames, sessionId, onBack, onRecapture }: Pr
   const lastDragT = useRef(0)
   const rafId     = useRef(0)
   const lastTime  = useRef(0)
-  const shownIdx  = useRef(-1)   // avoid redundant src swaps
+  const shownIdx  = useRef(-1)
 
   const [displayIdx, setDisplayIdx] = useState(0)
   const [isAuto, setIsAuto]         = useState(false)
@@ -37,7 +37,7 @@ export default function Viewer360({ frames, sessionId, onBack, onRecapture }: Pr
   const N = frames.length
   useEffect(() => { autoRef.current = isAuto }, [isAuto])
 
-  /* ── Preload all images ──────────────────────────────────── */
+  /* ── Preload all images, then size the canvas to first frame ── */
   useEffect(() => {
     const arr: HTMLImageElement[] = new Array(N)
     let done = 0
@@ -45,24 +45,57 @@ export default function Viewer360({ frames, sessionId, onBack, onRecapture }: Pr
       const img = new Image()
       img.onload = () => {
         arr[i] = img
-        if (++done === N) { imgsRef.current = arr; setLoaded(true) }
+        if (++done === N) {
+          imgsRef.current = arr
+          // size canvas to image aspect ratio (capped for perf)
+          const first = arr[0]
+          const maxDim = Math.max(first.naturalWidth, first.naturalHeight)
+          const scale  = Math.min(1, 1280 / maxDim)
+          const cvs = canvasRef.current
+          if (cvs) {
+            cvs.width  = Math.round(first.naturalWidth  * scale)
+            cvs.height = Math.round(first.naturalHeight * scale)
+          }
+          setLoaded(true)
+        }
       }
       img.src = f.dataUrl
     })
   }, [frames, N])
 
-  /* ── Swap image src directly — zero React overhead ───────── */
+  /* ── Canvas blend: draw two adjacent frames with fractional alpha ── */
   const paint = useCallback(() => {
-    const el = imgRef.current
-    if (!el || !imgsRef.current.length) return
+    const cvs = canvasRef.current
+    if (!cvs || !imgsRef.current.length) return
+    const ctx = cvs.getContext('2d')!
 
-    const pos = ((posRef.current % N) + N) % N
-    const idx = Math.floor(pos) % N
+    const pos   = ((posRef.current % N) + N) % N
+    const idxA  = Math.floor(pos) % N
+    const idxB  = (idxA + 1) % N
+    const alpha = pos - Math.floor(pos)   // 0 → 1 between frame A and B
 
-    if (idx !== shownIdx.current) {
-      shownIdx.current = idx
-      el.src = imgsRef.current[idx]?.src ?? ''
-      setDisplayIdx(idx)
+    const imgA = imgsRef.current[idxA]
+    const imgB = imgsRef.current[idxB]
+    if (!imgA || !imgB) return
+
+    const W = cvs.width, H = cvs.height
+
+    if (alpha < 0.01) {
+      ctx.drawImage(imgA, 0, 0, W, H)
+    } else if (alpha > 0.99) {
+      ctx.drawImage(imgB, 0, 0, W, H)
+    } else {
+      // Blend A → B as position moves between the two frames
+      ctx.globalAlpha = 1
+      ctx.drawImage(imgA, 0, 0, W, H)
+      ctx.globalAlpha = alpha
+      ctx.drawImage(imgB, 0, 0, W, H)
+      ctx.globalAlpha = 1
+    }
+
+    if (idxA !== shownIdx.current) {
+      shownIdx.current = idxA
+      setDisplayIdx(idxA)
     }
   }, [N])
 
@@ -162,19 +195,15 @@ export default function Viewer360({ frames, sessionId, onBack, onRecapture }: Pr
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
       >
-        {/* Single image — src swapped directly, no React re-render */}
-        <img
-          ref={imgRef}
-          src=""
-          alt="360"
-          draggable={false}
+        {/* Canvas — two frames blended for smooth 3D feel */}
+        <canvas
+          ref={canvasRef}
           className="pointer-events-none"
           style={{
-            maxWidth: '70%',
-            maxHeight: '70%',
+            maxWidth: '90%',
+            maxHeight: '90%',
             objectFit: 'contain',
             display: loaded ? 'block' : 'none',
-            willChange: 'contents',
           }}
         />
 
