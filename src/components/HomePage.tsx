@@ -48,10 +48,8 @@ function CarSVG() {
       <path d="M30 72 L236 72" stroke="#7c5cf6" strokeWidth="1.5" opacity="0.6"/>
       <path d="M18 58 L18 70 Q18 76 24 78 L44 80 L40 74 L26 72 L22 62 Z" fill="#312e81" opacity="0.8"/>
       <path d="M236 62 L238 66 L240 74 L236 80 L220 80 L222 74 L234 72 Z" fill="#312e81" opacity="0.8"/>
-      <path d="M82 36 Q86 22 96 16 Q108 10 128 10 Q152 10 164 16 Q172 20 178 28 L192 36 Z"
-        fill="url(#roofGrad)"/>
-      <path d="M98 18 Q112 12 132 12 Q154 12 166 18 Q158 14 132 14 Q110 14 98 18 Z"
-        fill="white" opacity="0.15"/>
+      <path d="M82 36 Q86 22 96 16 Q108 10 128 10 Q152 10 164 16 Q172 20 178 28 L192 36 Z" fill="url(#roofGrad)"/>
+      <path d="M98 18 Q112 12 132 12 Q154 12 166 18 Q158 14 132 14 Q110 14 98 18 Z" fill="white" opacity="0.15"/>
       <path d="M82 36 L96 16 Q90 18 84 28 Z" fill="#2d2a7a" opacity="0.9"/>
       <path d="M192 36 L178 28 Q184 32 188 36 Z" fill="#2d2a7a" opacity="0.9"/>
       <path d="M88 35 Q92 22 102 16 Q112 11 124 11 L124 35 Z" fill="url(#glassGrad)"/>
@@ -62,8 +60,7 @@ function CarSVG() {
       <line x1="126" y1="36" x2="122" y2="80" stroke="#2d2a7a" strokeWidth="1.2" opacity="0.6"/>
       <rect x="100" y="58" width="14" height="4" rx="2" fill="#6366F1" opacity="0.8"/>
       <rect x="148" y="58" width="14" height="4" rx="2" fill="#6366F1" opacity="0.8"/>
-      <path d="M82 42 L76 42 Q72 42 72 46 L72 50 Q72 54 76 54 L82 52 Z"
-        fill="#3730A3" stroke="#4338CA" strokeWidth="0.8"/>
+      <path d="M82 42 L76 42 Q72 42 72 46 L72 50 Q72 54 76 54 L82 52 Z" fill="#3730A3" stroke="#4338CA" strokeWidth="0.8"/>
       <ellipse cx="230" cy="62" rx="7" ry="10" fill="url(#headlightGlow)" opacity="0.5" filter="url(#carGlow)"/>
       <path d="M226 52 Q234 52 238 58 L238 66 Q236 72 228 72 L224 72 L222 60 Z" fill="#c4b5fd" opacity="0.85"/>
       <path d="M226 54 Q232 54 236 59 L236 65 Q234 70 228 70 L225 70 Z" fill="white" opacity="0.4"/>
@@ -95,13 +92,15 @@ function CarSVG() {
 }
 
 interface Props {
-  onStart:    () => void
-  onView:     () => void
-  onSessions: () => void
-  frames:     CapturedFrame[]
+  onStart:      () => void
+  onView:       () => void
+  onSessions:   () => void
+  frames:       CapturedFrame[]
+  darkMode:     boolean
+  onToggleDark: () => void
 }
 
-export default function HomePage({ onStart, onView, onSessions, frames }: Props) {
+export default function HomePage({ onStart, onView, onSessions, frames, darkMode, onToggleDark }: Props) {
   const hasFrames = frames.length > 0
   const [spinIdx, setSpinIdx] = useState(0)
   const spinRef = useRef<number | null>(null)
@@ -113,11 +112,21 @@ export default function HomePage({ onStart, onView, onSessions, frames }: Props)
     return () => { if (spinRef.current) clearInterval(spinRef.current) }
   }, [hasFrames, frames.length])
 
+  const dk = darkMode
+  const bg        = dk ? '#0A0812'  : '#ffffff'
+  const textMain  = dk ? '#EDE9FE'  : '#1E1B4B'
+  const textMuted = dk ? '#94A3B8'  : '#6B7280'
+  const textTiny  = dk ? '#64748B'  : '#9CA3AF'
+  const chipBg    = dk ? 'rgba(91,63,232,0.15)' : '#F5F3FF'
+  const chipBdr   = dk ? 'rgba(124,92,246,0.25)' : '#DDD6FE'
+  const chipClr   = dk ? '#A78BFA'  : '#5B3FE8'
+  const cardBorder= dk ? 'rgba(124,92,246,0.3)'  : '#DDD6FE'
+
   const PreviewCard = (
     <div className="rounded-3xl overflow-hidden border shadow-2xl w-full"
       style={{
         background: hasFrames ? '#000' : 'linear-gradient(145deg,#1E1B4B,#0E0B1F)',
-        borderColor: '#DDD6FE',
+        borderColor: cardBorder,
         boxShadow: '0 24px 80px rgba(91,63,232,0.18)',
         aspectRatio: '16/9',
         minHeight: 200,
@@ -148,7 +157,7 @@ export default function HomePage({ onStart, onView, onSessions, frames }: Props)
   )
 
   return (
-    <div className="min-h-dvh bg-white overflow-x-hidden">
+    <div className="min-h-dvh overflow-x-hidden transition-colors duration-300" style={{ background: bg }}>
 
       {/* ── Navbar ─────────────────────────────────── */}
       <nav className="flex items-center justify-between px-6 md:px-12 pt-8 pb-4 max-w-6xl mx-auto">
@@ -156,20 +165,26 @@ export default function HomePage({ onStart, onView, onSessions, frames }: Props)
           <OrbitLogo size={34}/>
           <div className="leading-none flex items-baseline gap-0.5">
             <span className="font-black text-base" style={{ color: '#5B3FE8' }}>AiGenix</span>
-            <span className="font-black text-base" style={{ color: '#1E1B4B' }}> OrbiT</span>
+            <span className="font-black text-base" style={{ color: textMain }}> OrbiT</span>
           </div>
         </div>
-        <button onClick={onSessions}
-          className="text-xs px-3 py-1.5 rounded-full font-medium border transition-opacity active:opacity-70"
-          style={{ background: '#F5F3FF', color: '#5B3FE8', borderColor: '#DDD6FE' }}>
-          🗂 Sessions
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={onToggleDark}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-base transition-opacity active:opacity-60"
+            style={{ background: chipBg, border: `1px solid ${chipBdr}` }}
+            title={dk ? 'Light mode' : 'Dark mode'}>
+            {dk ? '☀️' : '🌙'}
+          </button>
+          <button onClick={onSessions}
+            className="text-xs px-3 py-1.5 rounded-full font-medium border transition-opacity active:opacity-70"
+            style={{ background: chipBg, color: chipClr, borderColor: chipBdr }}>
+            🗂 Sessions
+          </button>
+        </div>
       </nav>
 
       {/* ── DESKTOP: two-column │ MOBILE: single-column ── */}
       <div className="max-w-6xl mx-auto px-6 md:px-12 pb-12">
-
-        {/* Desktop grid */}
         <div className="flex flex-col md:grid md:grid-cols-2 md:gap-16 md:items-center md:min-h-[80vh]">
 
           {/* LEFT — text + CTA */}
@@ -178,27 +193,25 @@ export default function HomePage({ onStart, onView, onSessions, frames }: Props)
               Vehicle Imaging Platform
             </p>
             <h1 className="font-black leading-tight mb-4"
-              style={{ color: '#1E1B4B', fontSize: 'clamp(2rem, 5vw, 3.5rem)' }}>
+              style={{ color: textMain, fontSize: 'clamp(2rem, 5vw, 3.5rem)' }}>
               Smarter 360°<br/>
               <span style={{ background: 'linear-gradient(90deg,#5B3FE8,#7C5CF6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 Vehicle Views
               </span>
             </h1>
-            <p className="text-sm md:text-base leading-relaxed mb-8 max-w-md" style={{ color: '#6B7280' }}>
+            <p className="text-sm md:text-base leading-relaxed mb-8 max-w-md" style={{ color: textMuted }}>
               Walk around your vehicle and capture 18 angles. The app automatically stitches them into a smooth, interactive 360° spin view.
             </p>
 
-            {/* Feature chips */}
             <div className="flex flex-wrap gap-2 mb-8">
-              {['18 Angles', 'Auto Stitch', 'Drag Spin', 'Session Save', 'Fullscreen'].map(f => (
+              {['18 Angles', 'AI Detection', 'Drag Spin', 'Session Save', 'Download', 'Export Video'].map(f => (
                 <span key={f} className="px-3 py-1 rounded-full text-xs font-medium border"
-                  style={{ background: '#F5F3FF', color: '#5B3FE8', borderColor: '#DDD6FE' }}>
+                  style={{ background: chipBg, color: chipClr, borderColor: chipBdr }}>
                   {f}
                 </span>
               ))}
             </div>
 
-            {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-3 md:max-w-sm">
               <button onClick={onStart}
                 className="flex-1 py-3.5 rounded-2xl font-bold text-sm text-white transition-opacity active:opacity-90"
@@ -208,13 +221,13 @@ export default function HomePage({ onStart, onView, onSessions, frames }: Props)
               {hasFrames && (
                 <button onClick={onView}
                   className="flex-1 py-3.5 rounded-2xl font-semibold text-sm border transition-opacity active:opacity-80"
-                  style={{ background: '#F5F3FF', color: '#5B3FE8', borderColor: '#DDD6FE' }}>
+                  style={{ background: chipBg, color: chipClr, borderColor: chipBdr }}>
                   🔄 View 360°
                 </button>
               )}
             </div>
 
-            <p className="text-xs mt-4" style={{ color: '#9CA3AF' }}>
+            <p className="text-xs mt-4" style={{ color: textTiny }}>
               Camera access required · Chrome / Safari
             </p>
           </div>
@@ -224,7 +237,7 @@ export default function HomePage({ onStart, onView, onSessions, frames }: Props)
             {PreviewCard}
             <div className="flex justify-center mt-3">
               <span className="text-xs font-medium px-3 py-1 rounded-full"
-                style={{ background: '#EDE9FE', color: '#5B3FE8' }}>
+                style={{ background: chipBg, color: chipClr }}>
                 {hasFrames
                   ? `${frames.length}/${TOTAL_FRAMES} captured · tap View 360°`
                   : '← drag to spin →'}

@@ -36,7 +36,10 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
   const videoRef    = useRef<HTMLVideoElement>(null)
   const canvasRef   = useRef<HTMLCanvasElement>(null)
   const streamRef   = useRef<MediaStream | null>(null)
-  const lastHashRef = useRef<number[] | null>(null)
+  const lastHashRef    = useRef<number[] | null>(null)
+  const compassRef     = useRef<number | null>(null)
+  const baseHeadingRef = useRef<number | null>(null)
+  const capturedSetRef = useRef<Set<number>>(new Set())
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [frames, setFrames] = useState<CapturedFrame[]>([])
@@ -47,6 +50,10 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
   const [facing, setFacing] = useState<'environment' | 'user'>('environment')
   const [captureWarning, setCaptureWarning] = useState('')
   const [modelStatus, setModelStatus] = useState(getDetectorStatus)
+  const [compassMode, setCompassMode] = useState(false)
+
+  // Keep ref in sync for use inside event handlers
+  capturedSetRef.current = capturedSet
   const [isLandscape, setIsLandscape] = useState(
     typeof window !== 'undefined' && window.innerWidth > window.innerHeight
   )
@@ -62,10 +69,46 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
     }
   }, [])
 
-  // Subscribe to model ready event (model may already be ready if user spent time on homepage)
+  useEffect(() => { onDetectorReady(s => setModelStatus(s)) }, [])
+
+  // Gyroscope / compass — auto-advance position as user walks around car
   useEffect(() => {
-    onDetectorReady(s => setModelStatus(s))
-  }, [])
+    if (!compassMode) return
+
+    const handler = (e: Event) => {
+      const ev = e as DeviceOrientationEvent & { webkitCompassHeading?: number }
+      // iOS: webkitCompassHeading is absolute CW from North
+      // Android: deviceorientationabsolute gives alpha CCW from North → convert
+      const heading =
+        ev.webkitCompassHeading != null ? ev.webkitCompassHeading
+        : ev.alpha != null ? (360 - ev.alpha) % 360
+        : null
+      if (heading === null) return
+      compassRef.current = heading
+      if (baseHeadingRef.current === null) return
+      const diff = (heading - baseHeadingRef.current + 360) % 360
+      const target = Math.round(diff / ANGLE_STEP) % TOTAL_FRAMES
+      if (!capturedSetRef.current.has(target)) setCurrentIndex(target)
+    }
+
+    const subscribe = () => {
+      window.addEventListener('deviceorientationabsolute', handler)
+      window.addEventListener('deviceorientation', handler)
+    }
+
+    if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
+      ;(DeviceOrientationEvent as any).requestPermission()
+        .then((s: string) => { if (s === 'granted') subscribe() })
+        .catch(() => setCompassMode(false))
+    } else {
+      subscribe()
+    }
+
+    return () => {
+      window.removeEventListener('deviceorientationabsolute', handler)
+      window.removeEventListener('deviceorientation', handler)
+    }
+  }, [compassMode])
 
   const startCamera = useCallback(async (facingMode: 'environment' | 'user') => {
     try {
@@ -92,6 +135,7 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
   }, [facing, startCamera])
 
   const warn = useCallback((msg: string) => {
+    navigator.vibrate?.([20, 40, 20])
     setCaptureWarning(msg)
     setTimeout(() => setCaptureWarning(''), 2800)
   }, [])
@@ -132,6 +176,13 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
     }
 
     lastHashRef.current = hash
+
+    // Lock compass base heading on first capture
+    if (capturedSet.size === 0 && compassRef.current !== null) {
+      baseHeadingRef.current = compassRef.current
+    }
+
+    navigator.vibrate?.(40) // success haptic
     const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
 
     const newFrame: CapturedFrame = { angle: currentIndex * ANGLE_STEP, dataUrl }
@@ -216,8 +267,17 @@ export default function CaptureMode({ onComplete, onBack }: Props) {
           <div className="absolute top-0 inset-x-0 flex items-center justify-between px-4 pt-3 pb-3 bg-gradient-to-b from-black/70 to-transparent">
             <button onClick={onBack} className="text-white/80 text-sm">← Back</button>
             <span className="text-white font-semibold text-sm tracking-wide">AiGenix OrbiT</span>
-            <button onClick={() => setFacing(f => f === 'environment' ? 'user' : 'environment')}
-              className="text-white/80 text-sm">🔄</button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCompassMode(m => !m)}
+                className="text-sm px-2 py-0.5 rounded-full transition-colors"
+                style={{ background: compassMode ? 'rgba(124,92,246,0.7)' : 'rgba(255,255,255,0.15)', color: compassMode ? '#fff' : 'rgba(255,255,255,0.7)' }}
+                title="Compass auto-advance">
+                🧭
+              </button>
+              <button onClick={() => setFacing(f => f === 'environment' ? 'user' : 'environment')}
+                className="text-white/80 text-sm">🔄</button>
+            </div>
           </div>
 
           {/* Angle label */}
